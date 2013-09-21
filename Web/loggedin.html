@@ -1,0 +1,16 @@
+<html>
+<head>
+   <title>Thanks for Logging In</title>
+</head>
+<body>
+<script type="text/javascript">
+try {
+	if(window.opener && !window.opener.closed) {
+  		window.opener.LinkBox.{{ action }}();
+	}
+} finally {
+	window.close();
+}
+</script>
+</body>
+</html>

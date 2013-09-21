@@ -1,0 +1,17 @@
+{
+  "manifest_version": 2,
+
+  "name": "LinkBox",
+  "description": "Share links with friends",
+  "version": "1.0",
+
+  "permissions": [
+    "tabs",
+    "http://*/"
+  ],
+  
+  "browser_action": {
+    "default_icon": "LinkBox-icon.png",
+    "default_popup": "popup.html"
+  }
+}
