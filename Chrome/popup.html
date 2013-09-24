@@ -3,8 +3,12 @@
 <head>
 <title>LinkBox</title>
 <style>
+* {
+  box-sizing: border-box;
+}
 html {
   font-family: Helvetica, Arial;
+  font-size: 11pt;
 }
 
 body {
@@ -14,7 +18,7 @@ body {
   padding: 0;
 }
 
-#login {
+#error {
   position: absolute;
   left: 0;
   top: 0;
@@ -36,6 +40,7 @@ body {
   background-color: #ddd;
   padding: 5px 8px;
   font-size: 0.9em;
+  cursor: pointer;
 }
 
 .toolbar {
@@ -65,13 +70,18 @@ ul#links li a {
 
 ul#links li a img {
   float: left;
-  margin-right: 5px;
+  margin-right: 10px;
 }
 
 ul#links li a span {
   display: block;
-  width: 350px;
+  width: 340px;
   overflow: hidden;
+  white-space:nowrap;
+}
+
+ul#links li a span.title {
+  margin-bottom: 0.2em;
 }
 
 .subtitle {
@@ -82,12 +92,59 @@ ul#links li a span {
 
 
 
-#share.button { 
+.share.button { 
   font-weight: bold;
 }
 
 #links .unread { 
   font-weight: bold;
+}
+
+form {
+  width: 380px;
+  margin: 0.5em auto;
+  padding: 0;
+}
+
+form div {
+  margin-bottom: 0.2em;
+}
+
+form input.preview {
+  border: 0 none;
+  padding: 0;
+  color: #666;
+  font-size: 0.9em;
+}
+
+form div.required label {
+  font-weight: bold;
+}
+
+input {
+  font-size: 11pt;
+}
+
+form div input[type="text"] {
+  width: 100%;
+}
+
+label {
+  display: block;
+  font-size: 0.8em;
+  color: #666;
+}
+
+form div.title input {
+  font-weight: bold;
+}
+
+form div.url, form div.comment {
+  margin-bottom: 1em;
+}
+
+form div.buttons {
+  text-align: right;
 }
 
 
@@ -97,18 +154,41 @@ ul#links li a span {
 
 <body tabindex="1">
 
+<div id="error" style="display: none;">
+  <div id="loginPrompt">
+    <a href="#" id="loginLink">Login to Your Google Account...</a>
+  </div>
+
+  <div id="connectionError">
+    <p>Connection error.</p>
+    <span class="reload button">Reload</span>
+  </div>
+</div>
+
+<form name="share" id="share" action="#" method="PUT">
+  <div class="title"><input type="text" name="title" id="title" class="preview" placeholder="title, e.g. 'Google Search'" /></div>
+  <div class="url"><input type="text" name="url" id="url" class="preview" placeholder="link, e.g. 'http://www.google.com'" /></div>
+
+  <div class="comment"><label for="comment">Comment</label><input type="text" name="comment" id="comment" /></div>
+
+  <input type="hidden" name="favicon" id="favicon" value="" />
+
+  <div class="buttons">
+    <input type="button" value="Cancel" />
+    <input type="submit" />
+  </div>
+</form>
+
+
 <div class="toolbar">
-  <span id="share" class="button">Share...</span>
-  <span id="reload" class="button">Reload</span>
-  <span id="logout" class="button">Logout</span>
+  <span class="share button">Share...</span>
+  <span class="reload button">Reload</span>
+  <span class="logout button">Logout</span>
 </div>
 
 <ul id="links">
 </ul>
 
-<div id="login" style="display: none;">
-  <a href="#" id="loginLink">Login to Your Google Account...</a>
-</div>
 
 <script src="jquery-1.10.2.js"></script>
 <script src="popup.js"></script>

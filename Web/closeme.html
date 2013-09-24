@@ -19,7 +19,13 @@ p {
 <body>
 <p>You're all set, you can close this window!</p>
 <script type="text/javascript">
+try {
+	if(window.opener && !window.opener.closed) {
+  		window.opener.LinkBox.{{ action }}();
+	}
+} finally {
 	window.close();
+}
 </script>
 </body>
 </html>

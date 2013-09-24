@@ -35,8 +35,8 @@ var LinkBox = {
    */
   loadLinks: function() {
     LinkBox.loadLinksInner_();
-    if ($('#login').is(':visible')) {
-      $('#login').slideUp('slow', LinkBox.loadLinksInner_);
+    if ($('#error').is(':visible')) {
+      $('#error').slideUp('slow', LinkBox.loadLinksInner_);
 
     } else {
       LinkBox.loadLinksInner_();
@@ -84,6 +84,13 @@ var LinkBox = {
         }
       },
 
+      error: function(jqXHR, textStatus, errorThrown) {
+        if (textStatus == 'error' && errorThrown != 'Unauthorized') {
+
+
+        }
+      },
+
       statusCode: {
         401: LinkBox.promptForLogin
       },
@@ -100,23 +107,50 @@ var LinkBox = {
   shareLinkForCurrentTab: function (tabs) {
     if (tabs.length > 0) {
       var tab = tabs[0];
-      
-      console.info(LinkBox.endpoint_);
-      $.ajax({
-        type: 'PUT',
-        url: LinkBox.endpoint_ + '/links', 
-        data: {
-          'url' : tab.url, 
-          'title': tab.title, 
-          'favicon': tab.favIconUrl,
-        },
-        success: LinkBox.loadLinks,
-        statusCode: {
-          401: LinkBox.promptForLogin
-        },
-      });
+
+      var form = $('form#share');
+
+      $('#url', form).val(tab.url);
+      $('#title', form).val(tab.title);
+      $('#favicon', form).val(tab.favIconUrl);
+      $('#comment', form).val('');
+
+      $('#url').toggleClass('preview', true);
+      $('#title').toggleClass('preview', true);
 
     }
+  },
+
+  handleShareSubmit: function(ev) {
+    var form = $(ev.target);
+
+
+
+  },
+
+  /**
+   * share the bundle of properties in data. Bundle should contain:
+   * {
+   *   url: url to share
+   *   title: title of page
+   *   comment: optional user comment
+   *   favicon: favicon of page
+   * }
+   *
+   * @param {tabs} the tabs object after querying for the current tab
+   * @private
+   */
+  shareLink_: function (linkBundle) {
+    $.ajax({
+      type: 'PUT',
+      url: LinkBox.endpoint_ + '/links', 
+      data: linkBundle,
+      success: LinkBox.loadLinks,
+      statusCode: {
+        401: LinkBox.promptForLogin
+      },
+    });
+
   },
 
   markAsRead: function(ev) {
@@ -129,10 +163,22 @@ var LinkBox = {
   },
 
   promptForLogin: function() {
-    if (! $('#login').is(':visible')) {
-      $('#login').slideDown();
+    $("#loginPrompt").show();
+    $("#connectionError").hide();
+
+    if (! $('#error').is(':visible')) {
+      $('#error').slideDown();
     }
 
+  },
+
+  connectionError: function() {
+    $("#loginPrompt").hide();
+    $("#connectionError").show();
+
+    if (! $('#error').is(':visible')) {
+      $('#error').slideDown();
+    }
   },
 
   logout: function() {
@@ -153,7 +199,7 @@ var LinkBox = {
 
 document.addEventListener('DOMContentLoaded', function () {
   $('#loginLink').attr('href', LinkBox.endpoint_ + '/login');
-
+  $('form#share').attr('action', LinkBox.endpoint_ + '/links');
   LinkBox.loadLinks();
 });
 
@@ -161,17 +207,17 @@ $('#loginLink').click(function(ev) {
   window.open(LinkBox.endpoint_ + '/login', 'authWindow', 'width=800,height=400');
 });
 
-$('#reload').click(function(ev) {
+$('.reload.button').click(function(ev) {
   LinkBox.loadLinks();
 
 });
 
-$('#logout').click(function(ev) {
+$('.logout.button').click(function(ev) {
   LinkBox.logout();
 
 });
 
-$('#share').click(function(ev) {
+$('.share.button').click(function(ev) {
   var q = {
     'currentWindow': true, 
     'active': true,

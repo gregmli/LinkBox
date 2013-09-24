@@ -5,6 +5,12 @@
   "description": "Share links with friends",
   "version": "1.0",
 
+  "icons": { 
+    "16": "Linkbox-icon16.png",
+    "48": "Linkbox-icon48.png",
+    "128": "Linkbox-icon128.png" 
+  },
+
   "permissions": [
     "tabs",
     "http://*/"
