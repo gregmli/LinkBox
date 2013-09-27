@@ -86,7 +86,7 @@ var LinkBox = {
 
       error: function(jqXHR, textStatus, errorThrown) {
         if (textStatus == 'error' && errorThrown != 'Unauthorized') {
-
+          LinkBox.connectionError();
 
         }
       },
