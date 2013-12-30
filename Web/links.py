@@ -22,9 +22,32 @@ import jinja2
 import os
 
 from google.appengine.api import users
+from google.appengine.ext import ndb
+from google.appengine.api import mail
 
 jinja_environment = jinja2.Environment(loader=jinja2.FileSystemLoader(os.path.dirname(__file__)))
+logger = logging.getLogger(__name__)
 
+def parseToField(text):
+    emailPrefix = 'mailto:'
+
+    if text is None or len(text) == 0:
+        return None
+
+    recipients = text.split(',')
+
+    def processRecipients(r):
+        if (r.startswith(emailPrefix)):
+            email = r[len(emailPrefix):]
+            return email
+        else:
+            id = r
+            k = ndb.Key(urlsafe=id)
+            user = k.get()
+            return user
+
+    out = map(processRecipients, recipients)
+    return out
 
 def checkLoggedIn(requestHandler):
     user = users.get_current_user()
@@ -49,6 +72,85 @@ def createLoginURL(request):
     return "/login"
 
 
+#
+# This is the business logic class for the application. LinkUser encapsulates
+# the logic above the data storage layer
+#
+class LinkUser:
+    def __init__(self, user):
+        self.user = user
+
+    # shareLink
+    #
+    # Shares a link with 0 or more recipients
+    # 
+    # If no recipients are specified, then the link is saved to the current user's
+    # inbox. Recipients can contain either email addresses, or user IDs. User IDs
+    # should be used between people who have friended each other already. For 
+    # recipients who haven't been friended, pass an email address, and an email
+    # notification will be sent.
+    # 
+    def shareLink(self, recipients, url, title, favicon, comment):
+    
+        if recipients is None or len(recipients) == 0:
+            recipients = [self.user]
+
+        links = []
+        for r in recipients:
+            if isinstance(r, linkdb.User):
+                l = linkdb.SharedLink(parent=r.key, url=url, title=title, favicon=favicon, comment=comment, createdBy=self.user)
+                
+            else:
+                l = linkdb.SharedLink(emailRecipient=r, url=url, title=title, favicon=favicon, comment=comment, createdBy=self.user)
+                
+                try:
+                    self.sendEmailShare(r, l)
+                except:
+                    # TODO: handle exceptions
+                    pass
+
+            # l.put()
+            links.append(l)
+
+        ndb.put_multi(links)
+
+    def getLinks(self):
+        links = linkdb.SharedLink.query(ancestor = self.user.key).order(-linkdb.SharedLink.created)
+
+        def mapToObject(l):
+            return {
+                'id': l.key.urlsafe(),
+                'url': l.url,
+                'title': l.title,
+                'favicon': l.favicon,
+                'comment': l.comment,
+                'read': l.read
+            }
+
+        out = map(mapToObject, links)
+
+        return out
+
+    def sendEmailShare(self, recipientEmail, link):
+        template = jinja_environment.get_template('emailshare.txt')
+        text = template.render(link=link)
+
+        message = mail.EmailMessage(
+            sender = self.user.email(),
+            to = recipientEmail,
+            subject = l.title,
+            body = text)
+                
+        message.send()
+        
+    def markLinkAsRead(self, urlSafeId, read=True):
+        logger.info("getting link by '%s'" % urlSafeId)
+        k = ndb.Key(urlsafe=urlSafeId)
+        link = k.get()
+        link.read = read
+        link.put()
+
+
 class MainHandler(webapp2.RequestHandler):
     def get(self):
         self.response.write('Hello world!')
@@ -60,35 +162,26 @@ class LinkHandler(webapp2.RequestHandler):
         if not user:
             return
 
+        to = self.request.get('to')
         url = self.request.get('url')
         title = self.request.get('title')
         favicon = self.request.get('favicon')
         comment = self.request.get('comment')
         
-        l = linkdb.SharedLink(parent=user.key, url=url, title=title, favicon=favicon, comment=comment)
-        l.put()
+        lu = LinkUser(user)
+
+        lu.shareLink(None, url, title, favicon, comment)
 
     def get(self):
         user = checkLoggedIn(self)
         if not user:
             return
 
-        links = linkdb.SharedLink.query(ancestor = user.key).order(-linkdb.SharedLink.created)
+        lu = LinkUser(user)
 
-        out = []
-        for l in links:
+        links = lu.getLinks()
 
-            obj = {
-                'id': l.key.urlsafe(),
-                'url': l.url,
-                'title': l.title,
-                'favicon': l.favicon,
-                'comment': l.comment,
-                'read': l.read
-            }
-            out.append(obj)
-
-        self.response.write(json.dumps(out))
+        self.response.write(json.dumps(links))
 
 
     def post(self):
@@ -98,11 +191,10 @@ class LinkHandler(webapp2.RequestHandler):
 
         id = self.request.get('id')
         read = self.request.get('read')
+        read = not(read in ['', '0', 'false', 'False'])
 
-        link = linkdb.getLinkByUrlsafeId(id)
-        link.read = not(read in ['', '0', 'false', 'False'])
-        link.put()
-
+        lu = LinkUser(user)
+        lu.markLinkAsRead(id, read)
 
 
 

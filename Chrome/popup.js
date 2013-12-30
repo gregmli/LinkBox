@@ -10,21 +10,13 @@ var LinkBox = {
   endpoint_: 'http://localhost:11080',
 
   /**
-   * 
+   * Event handler for after a link has been succcessfully shared
    *
    * @public
    */
-  publicFunction: function() {
-    
-  },
-
-  /**
-   * 
-   * @param {ProgressEvent} e The XHR ProgressEvent.
-   * @private
-   */
-  privateFunction_: function (e) {
-    
+  shareSuccess: function() {
+    // hide the form, and reload the links list
+    $('form#share').slideUp('slow', LinkBox.loadLinks);
   },
 
   /**
@@ -109,23 +101,33 @@ var LinkBox = {
       var tab = tabs[0];
 
       var form = $('form#share');
-
+      $('#to', form).val('');
       $('#url', form).val(tab.url);
       $('#title', form).val(tab.title);
       $('#favicon', form).val(tab.favIconUrl);
       $('#comment', form).val('');
-
+      
       $('#url').toggleClass('preview', true);
       $('#title').toggleClass('preview', true);
 
+      $('form#share').slideToggle('slow');
     }
   },
 
   handleShareSubmit: function(ev) {
     var form = $(ev.target);
 
+    var form = $('form#share');
 
+    var bundle = {
+      to: $('#to', form).val(),
+      url: $('#url', form).val(),
+      title: $('#title', form).val(),
+      comment: $('#comment', form).val(),
+      favicon: $('#favicon', form).val(),
+    };
 
+    LinkBox.shareLink_(bundle);
   },
 
   /**
@@ -134,10 +136,10 @@ var LinkBox = {
    *   url: url to share
    *   title: title of page
    *   comment: optional user comment
-   *   favicon: favicon of page
+   *   favicon: url of page's favicon
    * }
    *
-   * @param {tabs} the tabs object after querying for the current tab
+   * @param {linkBundle} a dict containing url, title, commment and favicon
    * @private
    */
   shareLink_: function (linkBundle) {
@@ -145,7 +147,7 @@ var LinkBox = {
       type: 'PUT',
       url: LinkBox.endpoint_ + '/links', 
       data: linkBundle,
-      success: LinkBox.loadLinks,
+      success: LinkBox.shareSuccess,
       statusCode: {
         401: LinkBox.promptForLogin
       },
@@ -155,6 +157,12 @@ var LinkBox = {
 
   markAsRead: function(ev) {
     var link = $(ev.target);
+
+    if (!link.is('a')) {
+      // descendant was clicked on - get the link, it has the properties
+      link = link.parent('a');
+    }
+
     var id = link.data('id');
     $.post(LinkBox.endpoint_ + '/links', {
       'id': id,
@@ -197,7 +205,54 @@ var LinkBox = {
 };
 
 
+var preload_data = [
+  { id: 'user1', text: 'Jane Doe'}, 
+  { id: 'user5', text: 'Spongebob Squarepants'}, 
+  { id: 'user6', text: 'Planet Bob' }, 
+  { id: 'user7', text: 'Inigo Montoya' }
+];
+
 document.addEventListener('DOMContentLoaded', function () {
+  $('#to').select2({
+    placeholder: "Select a contact, or type an email address",
+    multiple: true,
+    closeOnSelect: false,
+
+    createSearchChoice: function(term) {
+      var comma = term.indexOf(',');
+      if (comma >= 0)
+        term = term.substr(0, comma);
+
+      var emailPattern = /^([a-zA-Z0-9_.+-])+\@(([a-zA-Z0-9-])+\.)+([a-zA-Z0-9]{2,4})+$/;
+
+      if (! emailPattern.test(term)) {
+        return null;
+      }
+
+      return {
+        id: 'mailto:' + term,
+        text: term,
+        email: true
+      };
+    },
+
+    query: function(query){
+      var data = {results: []};
+
+      $.each(preload_data, function() {
+          if (query.term.length == 0 || this.text.toUpperCase().indexOf(query.term.toUpperCase()) >= 0 ) {
+              data.results.push({id: this.id, text: this.text });
+          }
+      });
+
+      query.callback(data);
+    },
+
+    formatNoMatches: function(term) {
+      return term + "<em> - invalid email</em>";
+    }
+  });
+
   $('#loginLink').attr('href', LinkBox.endpoint_ + '/login');
   $('form#share').attr('action', LinkBox.endpoint_ + '/links');
   LinkBox.loadLinks();
@@ -217,6 +272,8 @@ $('.logout.button').click(function(ev) {
 
 });
 
+$('form#share input[type="submit"]').click(LinkBox.handleShareSubmit);
+
 $('.share.button').click(function(ev) {
   var q = {
     'currentWindow': true, 
@@ -226,4 +283,4 @@ $('.share.button').click(function(ev) {
   chrome.tabs.query(q, LinkBox.shareLinkForCurrentTab);
 });
 
-$(document).on('click', '#links a', LinkBox.markAsRead);
+$('ul#links').on('click', 'a', LinkBox.markAsRead);

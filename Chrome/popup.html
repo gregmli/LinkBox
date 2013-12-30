@@ -2,6 +2,7 @@
 <html>
 <head>
 <title>LinkBox</title>
+<link href="bower_components/select2/select2.css" rel="stylesheet"/>
 <style>
 * {
   box-sizing: border-box;
@@ -13,7 +14,7 @@ html {
 
 body {
   width: 400px;
-  min-height: 100px;
+  min-height: 200px;
   margin: 0;
   padding: 0;
 }
@@ -155,6 +156,10 @@ form div.buttons {
   text-align: right;
 }
 
+/* this seems to be necessary to get the placeholder message to not cut off */
+form #to select2-search-field {
+  width: 100%;
+}
 
 </style>
 </head>
@@ -173,7 +178,14 @@ form div.buttons {
   </div>
 </div>
 
-<form name="share" id="share" action="#" method="PUT">
+<div class="toolbar">
+  <span class="share button">Share...</span>
+  <span class="reload button">Reload</span>
+  <span class="logout button">Logout</span>
+</div>
+
+<form name="share" id="share" action="#" method="PUT" style="display: none;">
+  <div class="to"><input type="hidden" name="to" id="to" style="width: 100%"/></div>
   <div class="title"><input type="text" name="title" id="title" class="preview" placeholder="title, e.g. 'Google Search'" /></div>
   <div class="url"><input type="text" name="url" id="url" class="preview" placeholder="link, e.g. 'http://www.google.com'" /></div>
 
@@ -187,18 +199,12 @@ form div.buttons {
   </div>
 </form>
 
-
-<div class="toolbar">
-  <span class="share button">Share...</span>
-  <span class="reload button">Reload</span>
-  <span class="logout button">Logout</span>
-</div>
-
 <ul id="links">
 </ul>
 
 
-<script src="jquery-1.10.2.js"></script>
+<script src="bower_components/jquery/jquery.js"></script>
+<script src="bower_components/select2/select2.js"></script>
 <script src="popup.js"></script>
 
 </body>
